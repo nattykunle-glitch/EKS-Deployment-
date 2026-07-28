@@ -47,5 +47,18 @@ resource "helm_release" "aws_load_balancer_controller" {
     value = module.vpc.vpc_id
   }
 
-  depends_on = [module.eks]
+  set {
+    name  = "serviceAccount.create"
+    value = "false"
+  }
+
+  set {
+    name  = "serviceAccount.name"
+    value = "aws-load-balancer-controller"
+  }
+
+  depends_on = [
+    module.eks,
+    kubernetes_service_account.alb_controller
+  ]
 }
