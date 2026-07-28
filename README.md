@@ -337,5 +337,6 @@ gateways, or EBS volumes are the most common source of surprise billing.
 _Fill this in after deployment:_
 
 ```
-http://<your-alb-dns-name>
-```
+## 12. Deployed Application URL
+
+http://k8s-default-hellowor-1fc774817a-1510824594.us-east-1.elb.amazonaws.com
