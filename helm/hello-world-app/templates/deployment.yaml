@@ -6,13 +6,14 @@ metadata:
     app: {{ .Release.Name }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: {{ .Release.Name }}
-  template:
-    metadata:
-      labels:
-        app: {{ .Release.Name }}
     spec:
       # Spread pods across nodes so each node gets a pod before any node gets a 2nd
       affinity:
