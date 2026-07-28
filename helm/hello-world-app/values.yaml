@@ -1,4 +1,4 @@
-replicaCount: 4   # 1 pod scheduled per node (4 nodes max) via pod anti-affinity
+replicaCount: 3   # temporarily reduced from 4 — Cluster Autoscaler IRSA fix not yet applied (see README §11)
 
 image:
   repository: ""   # set by CI/CD: <account-id>.dkr.ecr.<region>.amazonaws.com/hello-world-eks-app
@@ -18,12 +18,10 @@ resources:
     cpu: 250m
     memory: 256Mi
 
-autoscaling:
+aautoscaling:
   enabled: true
-  minReplicas: 4     # 1 pod per node baseline
-  maxReplicas: 12    # up to 3 pods per node x 4 nodes
-  targetCPUUtilizationPercentage: 50
-  targetMemoryUtilizationPercentage: 50
+  minReplicas: 3     # temporarily reduced from 4 — matches replicaCount above
+  maxReplicas: 12    # ceiling stays the same; HPA will simply queue extra pods as Pending if nodes are unavailable, which doesn't block deploys the way Helm's --wait does
 
 ingress:
   enabled: true
