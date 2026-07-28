@@ -1,0 +1,28 @@
+# Argo CD Application: this is the single manifest you apply once to
+# "bootstrap" Argo CD onto the Helm chart. From then on, Argo CD watches
+# this Git repo/branch and auto-syncs the cluster whenever values.yaml
+# changes (e.g. after the GitHub Actions workflow above bumps the image tag).
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hello-world-app
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/<your-username>/<your-repo>.git
+    targetRevision: gitops
+    path: helm/hello-world-app
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+
+  syncPolicy:
+    automated:
+      prune: true      # remove resources no longer defined in Git
+      selfHeal: true    # revert manual cluster changes back to match Git
+    syncOptions:
+      - CreateNamespace=true

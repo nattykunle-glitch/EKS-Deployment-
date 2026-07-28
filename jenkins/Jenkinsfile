@@ -1,0 +1,84 @@
+// Jenkins pipeline: build & push Docker image to ECR, then deploy to EKS with Helm.
+// Requires Jenkins plugins: Docker Pipeline, Amazon ECR, Kubernetes CLI, AWS Steps.
+// Requires Jenkins credentials configured:
+//   - "aws-creds"        (AWS access key/secret with ECR + EKS permissions, or use an EC2 instance role)
+//   - kubeconfig for the EKS cluster available on the Jenkins agent (via `aws eks update-kubeconfig`)
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION     = 'us-east-1'
+        AWS_ACCOUNT_ID = credentials('aws-account-id')          // Jenkins "Secret text" credential
+        ECR_REPO       = "hello-world-eks-app"
+        ECR_URI        = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+        IMAGE_TAG      = "${env.BUILD_NUMBER}"
+        CLUSTER_NAME   = "hello-world-eks"
+        HELM_RELEASE   = "hello-world-app"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('app') {
+                    sh "docker build -t ${ECR_URI}:${IMAGE_TAG} -t ${ECR_URI}:latest ."
+                }
+            }
+        }
+
+        stage('Login & Push to ECR') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_URI}
+                        docker push ${ECR_URI}:${IMAGE_TAG}
+                        docker push ${ECR_URI}:latest
+                    """
+                }
+            }
+        }
+
+        stage('Configure kubectl') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${CLUSTER_NAME}"
+                }
+            }
+        }
+
+        stage('Deploy with Helm') {
+            steps {
+                sh """
+                    helm upgrade --install ${HELM_RELEASE} ./helm/hello-world-app \
+                        --set image.repository=${ECR_URI} \
+                        --set image.tag=${IMAGE_TAG} \
+                        --wait --timeout 5m
+                """
+            }
+        }
+
+        stage('Verify Rollout') {
+            steps {
+                sh "kubectl rollout status deployment/${HELM_RELEASE} --timeout=120s"
+                sh "kubectl get ingress ${HELM_RELEASE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployed image ${ECR_URI}:${IMAGE_TAG} to EKS cluster ${CLUSTER_NAME}."
+        }
+        failure {
+            echo "Pipeline failed — check the stage logs above."
+        }
+    }
+}

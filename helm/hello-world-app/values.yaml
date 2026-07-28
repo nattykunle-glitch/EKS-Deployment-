@@ -1,0 +1,35 @@
+replicaCount: 4   # 1 pod scheduled per node (4 nodes max) via pod anti-affinity
+
+image:
+  repository: ""   # set by CI/CD: <account-id>.dkr.ecr.<region>.amazonaws.com/hello-world-eks-app
+  tag: "latest"
+  pullPolicy: Always
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 4     # 1 pod per node baseline
+  maxReplicas: 12    # up to 3 pods per node x 4 nodes
+  targetCPUUtilizationPercentage: 50
+  targetMemoryUtilizationPercentage: 50
+
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /healthz
+  host: ""   # optional custom domain; leave blank to use the ALB's generated DNS name
