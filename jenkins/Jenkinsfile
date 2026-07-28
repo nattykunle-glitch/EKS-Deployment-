@@ -2,7 +2,7 @@
 // Requires Jenkins plugins: Docker Pipeline, Amazon ECR, Kubernetes CLI, AWS Steps.
 // Requires Jenkins credentials configured:
 //   - "aws-creds"        (AWS access key/secret with ECR + EKS permissions, or use an EC2 instance role)
-//   - kubeconfig for the EKS cluster available on the Jenkins agent (via `aws eks update-kubeconfig`)
+//   - "aws-account-id"   (Secret text credential containing your 12-digit AWS account ID)
 
 pipeline {
     agent any
@@ -55,26 +55,27 @@ pipeline {
         }
 
         stage('Deploy with Helm') {
-    steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
-            sh """
-                helm upgrade --install ${HELM_RELEASE} ./helm/hello-world-app \
-                    --set image.repository=${ECR_URI} \
-                    --set image.tag=${IMAGE_TAG} \
-                    --wait --timeout 5m
-            """
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh """
+                        helm upgrade --install ${HELM_RELEASE} ./helm/hello-world-app \
+                            --set image.repository=${ECR_URI} \
+                            --set image.tag=${IMAGE_TAG} \
+                            --wait --timeout 5m
+                    """
+                }
+            }
         }
-    }
-}
 
-stage('Verify Rollout') {
-    steps {
-        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
-            sh "kubectl rollout status deployment/${HELM_RELEASE} --timeout=120s"
-            sh "kubectl get ingress ${HELM_RELEASE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
+        stage('Verify Rollout') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+                    sh "kubectl rollout status deployment/${HELM_RELEASE} --timeout=120s"
+                    sh "kubectl get ingress ${HELM_RELEASE} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}'"
+                }
+            }
         }
     }
-}
 
     post {
         success {
