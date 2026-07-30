@@ -1,7 +1,7 @@
 replicaCount: 3   # temporarily reduced from 4 — Cluster Autoscaler IRSA fix not yet applied (see README §11)
 
 image:
-  repository: ""   # set by CI/CD: <account-id>.dkr.ecr.<region>.amazonaws.com/hello-world-eks-app
+  repository: nginx   # set by CI/CD: <account-id>.dkr.ecr.<region>.amazonaws.com/hello-world-eks-app
   tag: "latest"
   pullPolicy: Always
 

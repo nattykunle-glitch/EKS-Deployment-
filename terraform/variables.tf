@@ -25,8 +25,9 @@ variable "vpc_cidr" {
 variable "node_instance_type" {
   description = "EC2 instance type for worker nodes"
   type        = string
-  default     = "t3.small"
+  default     = "t3.medium"
 }
+
 
 variable "node_desired_size" {
   description = "Desired number of nodes at cluster creation (min running at all times)"

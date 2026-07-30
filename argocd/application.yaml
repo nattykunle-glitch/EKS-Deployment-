@@ -12,7 +12,7 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/<your-username>/<your-repo>.git
+    repoURL: https://github.com/nattykunle-glitch/EKS-Deployment-.git
     targetRevision: gitops
     path: helm/hello-world-app
 

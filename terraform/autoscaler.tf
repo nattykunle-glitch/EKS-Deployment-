@@ -1,4 +1,4 @@
-# Cluster Autoscaler: watches for unschedulable pods and adds nodes
+## Cluster Autoscaler: watches for unschedulable pods and adds nodes
 # (up to node_max_size), and removes nodes when they're underutilized
 # (down to node_min_size = 1). This is what makes "1 node always on,
 # scalable to 4" actually happen.
@@ -20,7 +20,18 @@ resource "helm_release" "cluster_autoscaler" {
     value = var.aws_region
   }
 
-  depends_on = [module.eks]
+  # NEW: annotate the pod's service account with the IRSA role ARN
+  # so it authenticates as that role instead of falling back to the
+  # node's instance profile (which doesn't have autoscaling perms).
+  set {
+    name  = "rbac.serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = module.cluster_autoscaler_irsa_role.iam_role_arn
+  }
+
+  depends_on = [
+    module.eks,
+    module.cluster_autoscaler_irsa_role  # NEW
+  ]
 }
 
 # AWS Load Balancer Controller: watches Kubernetes Ingress resources
