@@ -1,7 +1,7 @@
 replicaCount: 4   # 1 pod scheduled per node (4 nodes max) via pod anti-affinity
 
 image:
-  repository: ""   # set by CI/CD: <account-id>.dkr.ecr.<region>.amazonaws.com/hello-world-eks-app
+  repository: nginx   # set by CI/CD: <account-id>.dkr.ecr.<region>.amazonaws.com/hello-world-eks-app
   tag: "latest"
   pullPolicy: Always
 
